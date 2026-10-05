@@ -3,7 +3,6 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
-  IsEnum,
   IsMongoId,
   IsNotEmpty,
   IsNumber,
@@ -14,7 +13,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Uom } from '../../../common/enums/inspection.enum.js';
 import {
   MAX_EXPENSE,
   MAX_LINES,
@@ -41,9 +39,11 @@ export class InspectionLineDto {
   @IsNotEmpty({ message: 'Material name is required' })
   materialName!: string;
 
-  @IsEnum(Uom, { message: 'Select Lots, Numbers or Kilograms' })
+  @Transform(trim)
+  @MaxLength(30, { message: 'Unit must be 30 characters or fewer' })
+  @IsString()
   @IsNotEmpty({ message: 'Select a unit of measure' })
-  uom!: Uom;
+  uom!: string;
 
   @Max(MAX_QUANTITY, { message: 'Quantity is too large' })
   @Min(0, { message: 'Quantity cannot be negative' })

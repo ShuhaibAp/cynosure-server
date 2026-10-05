@@ -14,8 +14,9 @@ import { InspectionType } from '../../common/enums/inspection.enum.js';
 import { PoStatus } from '../../common/enums/po-status.enum.js';
 import { QuotationStatus } from '../../common/enums/quotation.enum.js';
 import { Role } from '../../common/enums/role.enum.js';
-import { CustomersService } from '../../common/customers/customers.service.js';
+import { CustomerAccessService } from '../../common/customers/customer-access.service.js';
 import { PoFilesService } from '../../common/files/po-files.service.js';
+import { UomsService } from '../uoms/uoms.service.js';
 import { InspectionsService } from '../inspections/inspections.service.js';
 import { InspectionLineDoc } from '../inspections/schemas/inspection.schema.js';
 import { PurchaseOrderDocument } from '../purchase-orders/schemas/purchase-order.schema.js';
@@ -50,12 +51,13 @@ export class QuotationsService {
   constructor(
     @InjectModel(Quotation.name) private model: Model<QuotationDocument>,
     private pos: PurchaseOrdersService,
-    private customers: CustomersService,
     private inspections: InspectionsService,
     private files: PoFilesService,
     private pdf: QuotationPdfService,
     private termsReader: TermsReaderService,
     private audit: AuditService,
+    private uoms: UomsService,
+    private customerAccess: CustomerAccessService,
   ) {}
 
   private async load(poId: string) {
@@ -291,17 +293,19 @@ export class QuotationsService {
       _id: Types.ObjectId;
       inspectionLineId: Types.ObjectId | null;
       materialName: string;
-      uom: QuotationLineDoc['uom'];
+      uom: string;
       quantity: number;
       unitPrice: number | null;
     }>;
 
     if (q.manualLines) {
       const used = new Set<string>();
+      const units = await this.uoms.resolve(dto.lines.map((l) => l.uom));
       rows = dto.lines.map((line, i) => {
         if (!line.materialName)
           errors[`lines.${i}.materialName`] = 'Material name is required';
         if (!line.uom) errors[`lines.${i}.uom`] = 'Select a unit';
+        else if (!units[i]) errors[`lines.${i}.uom`] = 'Select a valid unit';
         if (line.quantity === undefined || line.quantity === null) {
           errors[`lines.${i}.quantity`] = 'Quantity is required';
         }
@@ -312,7 +316,7 @@ export class QuotationsService {
           _id: prior?._id ?? new Types.ObjectId(),
           inspectionLineId: null,
           materialName: line.materialName ?? '',
-          uom: line.uom!,
+          uom: units[i] ?? '',
           quantity: line.quantity ?? 0,
           unitPrice: line.unitPrice ?? null,
         };
@@ -716,6 +720,14 @@ export class QuotationsService {
       moved,
       { version: quotation.version, ...(note ? { note } : {}) },
     );
+
+    // The client approving is what opens the customer app for them. A failed invite must
+    // never undo the approval - staff can resend it from the PO.
+    if (dto.decision === ClientDecision.Approved) {
+      await this.customerAccess
+        .invite(po.customerId.toString())
+        .catch(() => null);
+    }
     return this.toResponse(moved, updated, actor.role);
   }
 
@@ -786,8 +798,6 @@ export class QuotationsService {
         'The quotation can be downloaded only after Admin approval.',
       );
     }
-    const customer = await this.customers.findById(po.customerId);
-    if (!customer) throw new NotFoundException('Customer record not found');
 
     const signature = quotation.signature
       ? await readFile(
@@ -805,10 +815,10 @@ export class QuotationsService {
       version: quotation.version,
       approvedAt: quotation.reviewedAt,
       customer: {
-        name: customer.name,
-        address: customer.address,
-        phone: customer.phone,
-        email: customer.email,
+        name: po.customerDetails.name,
+        address: po.customerDetails.address,
+        phone: po.customerDetails.phone,
+        email: po.customerDetails.email,
       },
       lines: (quotation.lines as QuotationLineDoc[]).map((l) => ({
         materialName: l.materialName,
@@ -854,11 +864,7 @@ export class QuotationsService {
       this.model.countDocuments(filter).exec(),
     ]);
     const pos = await this.pos.findByIds(items.map((q) => q.poId));
-    const customers = await this.customers.findByIds(
-      pos.map((p) => p.customerId),
-    );
     const poById = new Map(pos.map((p) => [p._id.toString(), p]));
-    const customerById = new Map(customers.map((c) => [c._id.toString(), c]));
 
     return {
       total,
@@ -867,9 +873,7 @@ export class QuotationsService {
         return {
           poId: q.poId.toString(),
           poNumber: po?.poNumber ?? '—',
-          customerName: po
-            ? (customerById.get(po.customerId.toString())?.name ?? '—')
-            : '—',
+          customerName: po?.customerDetails.name ?? '—',
           version: q.version,
           grandTotal: q.grandTotal,
           submittedAt: q.submittedAt,

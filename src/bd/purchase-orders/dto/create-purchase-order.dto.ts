@@ -1,13 +1,11 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
-import { ServiceType } from '../../../common/enums/service-type.enum.js';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -27,6 +25,12 @@ export class CreatePurchaseOrderDto {
   address!: string;
 
   @Transform(trim)
+  @IsOptional()
+  @MaxLength(200, { message: 'Location must be 200 characters or fewer' })
+  @IsString()
+  location?: string;
+
+  @Transform(trim)
   @MaxLength(30, { message: 'Phone number must be 30 characters or fewer' })
   @IsString()
   @IsNotEmpty({ message: 'Phone number is required' })
@@ -38,9 +42,11 @@ export class CreatePurchaseOrderDto {
   @IsNotEmpty({ message: 'Email address is required' })
   email!: string;
 
-  @IsEnum(ServiceType, { message: 'Select a valid service type' })
+  @Transform(trim)
+  @MaxLength(60, { message: 'Service type must be 60 characters or fewer' })
+  @IsString()
   @IsNotEmpty({ message: 'Service type is required' })
-  serviceType!: ServiceType;
+  serviceType!: string;
 
   @Transform(trim)
   @IsOptional()

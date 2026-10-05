@@ -23,7 +23,7 @@ export const COLUMN_LABELS: Record<Column, string> = {
   clientQuantity: 'Client Quantity',
 };
 
-const UOM_ALIASES: Record<string, Uom> = {
+const UOM_ALIASES: Record<string, string> = {
   lot: Uom.Lots,
   lots: Uom.Lots,
   no: Uom.Numbers,
@@ -43,7 +43,7 @@ const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
 export interface ParsedRow {
   materialName: string;
-  uom: Uom;
+  uom: string;
   clientQuantity: number;
 }
 
@@ -229,6 +229,7 @@ export function extractRows(
   matrix: unknown[][],
   headerRow: number,
   columns: Record<Column, number | null>,
+  knownUoms: string[] = [],
 ): ParsedList {
   const dataRows = matrix.slice(headerRow + 1);
   const rows: ParsedRow[] = [];
@@ -256,7 +257,9 @@ export function extractRows(
     }
 
     const row = headerRow + 2 + i;
-    const uom = UOM_ALIASES[normalise(unit)];
+    const uom =
+      UOM_ALIASES[normalise(unit)] ??
+      knownUoms.find((u) => normalise(u) === normalise(unit));
     const qty = parseQuantity(quantityRaw);
     const reason =
       (!material && 'Material Name is missing') ||
@@ -264,7 +267,7 @@ export function extractRows(
         `Material Name is longer than ${MAX_TEXT} characters`) ||
       (!uom &&
         (unit
-          ? `Unit "${unit}" is not recognised (use Lots, Numbers or Kilograms)`
+          ? `Unit "${unit}" is not a known unit - add it in the editor first`
           : 'UoM is missing')) ||
       qty.error;
 

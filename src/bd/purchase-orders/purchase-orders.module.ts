@@ -12,6 +12,10 @@ import { PurchaseOrdersController } from './purchase-orders.controller.js';
 import { PurchaseOrdersService } from './purchase-orders.service.js';
 import { Counter, CounterSchema } from './schemas/counter.schema.js';
 import {
+  ServiceTypeOption,
+  ServiceTypeOptionSchema,
+} from './schemas/service-type.schema.js';
+import {
   PurchaseOrder,
   PurchaseOrderSchema,
 } from './schemas/purchase-order.schema.js';
@@ -21,6 +25,7 @@ import {
     MongooseModule.forFeature([
       { name: PurchaseOrder.name, schema: PurchaseOrderSchema },
       { name: Counter.name, schema: CounterSchema },
+      { name: ServiceTypeOption.name, schema: ServiceTypeOptionSchema },
       // Read-only access to the scheduled collection date for the PO List's countdown badge
       // (FR-06.03) - importing PickupRequestsModule would be circular, since it already
       // imports PurchaseOrdersModule.

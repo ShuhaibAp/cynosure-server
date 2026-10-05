@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuditModule } from '../../common/audit/audit.module.js';
 import { AuthModule } from '../../common/auth/auth.module.js';
-import { CustomersModule } from '../../common/customers/customers.module.js';
 import { FilesModule } from '../../common/files/files.module.js';
 import { InspectionsModule } from '../inspections/inspections.module.js';
 import { PurchaseOrdersModule } from '../purchase-orders/purchase-orders.module.js';
@@ -22,7 +21,6 @@ import {
     ]),
     AuthModule,
     AuditModule,
-    CustomersModule,
     FilesModule,
     InspectionsModule,
     QuotationsModule,

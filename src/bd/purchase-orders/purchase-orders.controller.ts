@@ -22,6 +22,7 @@ import {
   streamStoredFile,
   uploadMany,
 } from '../../common/files/upload.helpers.js';
+import { AddServiceTypeDto } from './dto/add-service-type.dto.js';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
 import { ListPurchaseOrdersDto } from './dto/list-purchase-orders.dto.js';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
@@ -54,6 +55,33 @@ export class PurchaseOrdersController {
   @Roles(Role.BdTeam, Role.Admin, Role.Operations)
   summary() {
     return this.service.summary();
+  }
+
+  @Get('service-types')
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  serviceTypes() {
+    return this.service.listServiceTypes();
+  }
+
+  @Post('service-types')
+  @Roles(Role.BdTeam)
+  addServiceType(
+    @Body() dto: AddServiceTypeDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.addServiceType(dto.name, user);
+  }
+
+  @Get(':id/customer-access')
+  @Roles(Role.BdTeam, Role.Admin)
+  customerAccess(@Param('id') id: string) {
+    return this.service.customerAccessStatus(id);
+  }
+
+  @Post(':id/customer-access')
+  @Roles(Role.BdTeam, Role.Admin)
+  inviteCustomer(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.inviteCustomer(id, user);
   }
 
   @Get(':id')

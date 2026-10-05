@@ -15,6 +15,7 @@ import {
 } from '../../common/files/po-files.service.js';
 import { PurchaseOrderDocument } from '../purchase-orders/schemas/purchase-order.schema.js';
 import { PurchaseOrdersService } from '../purchase-orders/purchase-orders.service.js';
+import { UomsService } from '../uoms/uoms.service.js';
 import { ImportListDto } from './dto/import-list.dto.js';
 import { SaveInspectionDto } from './dto/save-inspection.dto.js';
 import { SavePhotoTagsDto } from './dto/save-photo-tags.dto.js';
@@ -68,6 +69,7 @@ export function photoTag(
 export class InspectionsService {
   constructor(
     @InjectModel(Inspection.name) private model: Model<InspectionDocument>,
+    private uoms: UomsService,
     private pos: PurchaseOrdersService,
     private files: PoFilesService,
     private audit: AuditService,
@@ -234,15 +236,29 @@ export class InspectionsService {
         l,
       ]),
     );
+    const units = await this.uoms.resolve(dto.lines.map((l) => l.uom));
+    const unitErrors: Record<string, string> = {};
+    units.forEach((u, i) => {
+      if (!u) unitErrors[`lines.${i}.uom`] = 'Select a valid unit';
+    });
+    if (Object.keys(unitErrors).length > 0) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: Object.values(unitErrors),
+        errors: unitErrors,
+      });
+    }
+
     const used = new Set<string>();
-    const lines = dto.lines.map((line) => {
+    const lines = dto.lines.map((line, i) => {
       const prior =
         line.id && !used.has(line.id) ? existing.get(line.id) : undefined;
       if (prior) used.add(line.id!);
       return {
         _id: prior?._id ?? new Types.ObjectId(),
         materialName: line.materialName,
-        uom: line.uom,
+        uom: units[i]!,
         clientQuantity: line.clientQuantity,
         // Inspected Quantity stays read-only until the acknowledgement is ticked (BR-02.01).
         inspectedQuantity: dto.acknowledged
@@ -346,7 +362,7 @@ export class InspectionsService {
 
     return {
       mode: 'rows' as const,
-      ...extractRows(matrix, headerRow, columns),
+      ...extractRows(matrix, headerRow, columns, await this.uoms.list()),
     };
   }
 

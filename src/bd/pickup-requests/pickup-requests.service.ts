@@ -10,7 +10,6 @@ import { Model, Types } from 'mongoose';
 import { Actor, AuditService } from '../../common/audit/audit.service.js';
 import { PickupStatus } from '../../common/enums/pickup-status.enum.js';
 import { PoStatus } from '../../common/enums/po-status.enum.js';
-import { CustomersService } from '../../common/customers/customers.service.js';
 import { PoFilesService } from '../../common/files/po-files.service.js';
 import {
   InspectionsService,
@@ -36,7 +35,6 @@ export class PickupRequestsService {
     @InjectModel(PickupRequest.name)
     private model: Model<PickupRequestDocument>,
     private pos: PurchaseOrdersService,
-    private customers: CustomersService,
     private inspections: InspectionsService,
     private quotations: QuotationsService,
     private files: PoFilesService,
@@ -283,8 +281,6 @@ export class PickupRequestsService {
         'The Inspection Report is available once the pickup request has been generated.',
       );
     }
-    const customer = await this.customers.findById(po.customerId);
-    if (!customer) throw new NotFoundException('Customer record not found');
 
     const [lines, inspection] = await Promise.all([
       this.quotations.latestLines(po._id),
@@ -307,10 +303,10 @@ export class PickupRequestsService {
       serviceType: po.serviceType,
       poInstructions: po.poInstructions,
       customer: {
-        name: customer.name,
-        address: customer.address,
-        phone: customer.phone,
-        email: customer.email,
+        name: po.customerDetails.name,
+        address: po.customerDetails.address,
+        phone: po.customerDetails.phone,
+        email: po.customerDetails.email,
       },
       lines: lines.map((l) => ({
         materialName: l.materialName,

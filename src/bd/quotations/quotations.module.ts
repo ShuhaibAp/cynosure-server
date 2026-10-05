@@ -5,6 +5,7 @@ import { AuthModule } from '../../common/auth/auth.module.js';
 import { CustomersModule } from '../../common/customers/customers.module.js';
 import { FilesModule } from '../../common/files/files.module.js';
 import { InspectionsModule } from '../inspections/inspections.module.js';
+import { UomsModule } from '../uoms/uoms.module.js';
 import { PurchaseOrdersModule } from '../purchase-orders/purchase-orders.module.js';
 import { QuotationPdfService } from './quotation-pdf.service.js';
 import { TermsReaderService } from './terms-reader.service.js';
@@ -24,6 +25,7 @@ import { Quotation, QuotationSchema } from './schemas/quotation.schema.js';
     FilesModule,
     InspectionsModule,
     PurchaseOrdersModule,
+    UomsModule,
   ],
   controllers: [QuotationsController, QuotationsQueueController],
   providers: [QuotationsService, QuotationPdfService, TermsReaderService],

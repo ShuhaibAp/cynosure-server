@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { Uom } from '../../common/enums/inspection.enum.js';
 import {
   StoredFile,
   StoredFileSchema,
@@ -16,8 +15,8 @@ export class OperationsLine {
   @Prop({ type: String, required: true, trim: true })
   materialName!: string;
 
-  @Prop({ type: String, required: true, enum: Uom })
-  uom!: Uom;
+  @Prop({ type: String, required: true })
+  uom!: string;
 
   @Prop({ type: Number, required: true, min: 0 })
   clientQuantity!: number;

@@ -1,7 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { PoStatus } from '../../../common/enums/po-status.enum.js';
-import { ServiceType } from '../../../common/enums/service-type.enum.js';
+import {
+  CustomerDetails,
+  CustomerDetailsSchema,
+} from '../../../common/customers/schemas/customer-details.schema.js';
 import {
   StoredFile,
   StoredFileSchema,
@@ -17,8 +20,14 @@ export class PurchaseOrder {
   @Prop({ type: Types.ObjectId, ref: 'Customer', required: true, index: true })
   customerId!: Types.ObjectId;
 
-  @Prop({ type: String, required: true, enum: ServiceType })
-  serviceType!: ServiceType;
+  // A built-in ServiceType or a name added through POST /purchase-orders/service-types.
+  // The customer record's identity (account, reuse) - what to *show* on this order is
+  // `customerDetails` below, never the live customer record.
+  @Prop({ type: String, required: true })
+  serviceType!: string;
+
+  @Prop({ type: CustomerDetailsSchema, required: true })
+  customerDetails!: CustomerDetails;
 
   @Prop({ type: String, default: '' })
   poInstructions!: string;

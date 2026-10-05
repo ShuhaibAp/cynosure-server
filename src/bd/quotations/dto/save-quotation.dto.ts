@@ -2,7 +2,6 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
-  IsEnum,
   IsMongoId,
   IsNumber,
   IsOptional,
@@ -12,7 +11,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Uom } from '../../../common/enums/inspection.enum.js';
 import {
   MAX_LINES,
   MAX_QUANTITY,
@@ -44,9 +42,13 @@ export class QuotationLineDto {
   @IsString()
   materialName?: string;
 
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsOptional()
-  @IsEnum(Uom, { message: 'Select Lots, Numbers or Kilograms' })
-  uom?: Uom;
+  @MaxLength(30, { message: 'Unit must be 30 characters or fewer' })
+  @IsString()
+  uom?: string;
 
   @IsOptional()
   @Max(MAX_QUANTITY, { message: 'Quantity is too large' })

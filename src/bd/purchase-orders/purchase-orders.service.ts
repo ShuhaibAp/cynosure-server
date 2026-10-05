@@ -11,8 +11,9 @@ import {
   PIPELINE_STATUSES,
   PoStatus,
 } from '../../common/enums/po-status.enum.js';
+import { ServiceType } from '../../common/enums/service-type.enum.js';
+import { CustomerAccessService } from '../../common/customers/customer-access.service.js';
 import { CustomersService } from '../../common/customers/customers.service.js';
-import { CustomerDocument } from '../../common/customers/schemas/customer.schema.js';
 import { PoFilesService } from '../../common/files/po-files.service.js';
 import { StoredFileDoc } from '../../common/files/stored-file.schema.js';
 import {
@@ -28,6 +29,10 @@ import {
   PurchaseOrder,
   PurchaseOrderDocument,
 } from './schemas/purchase-order.schema.js';
+import {
+  ServiceTypeOption,
+  ServiceTypeDocument,
+} from './schemas/service-type.schema.js';
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const clip = (v: unknown) =>
@@ -39,12 +44,52 @@ export class PurchaseOrdersService {
     @InjectModel(PurchaseOrder.name)
     private poModel: Model<PurchaseOrderDocument>,
     @InjectModel(Counter.name) private counterModel: Model<Counter>,
+    @InjectModel(ServiceTypeOption.name)
+    private serviceTypeModel: Model<ServiceTypeDocument>,
     @InjectModel(PickupRequest.name)
     private pickupModel: Model<PickupRequestDocument>,
     private customers: CustomersService,
+    private customerAccess: CustomerAccessService,
     private files: PoFilesService,
     private audit: AuditService,
   ) {}
+
+  /** Built-in types first, then the ones BD added, oldest first. */
+  async listServiceTypes(): Promise<string[]> {
+    const custom = await this.serviceTypeModel
+      .find()
+      .sort({ createdAt: 1 })
+      .exec();
+    return [...Object.values(ServiceType), ...custom.map((t) => t.name)];
+  }
+
+  /** Adds a PO type; a name that already exists (any casing) is returned as is. */
+  async addServiceType(name: string, actor: Actor) {
+    const existing = (await this.listServiceTypes()).find(
+      (t) => t.toLowerCase() === name.toLowerCase(),
+    );
+    if (existing) return { name: existing };
+    try {
+      await this.serviceTypeModel.create({
+        name,
+        key: name.toLowerCase(),
+        createdBy: new Types.ObjectId(actor.userId),
+      });
+    } catch (err) {
+      // Two people adding the same name at once: the unique key makes one lose.
+      if ((err as { code?: number }).code !== 11000) throw err;
+    }
+    return { name };
+  }
+
+  /** Matches a submitted type to a known one (any casing) or rejects it. */
+  private async resolveServiceType(value: string): Promise<string> {
+    const match = (await this.listServiceTypes()).find(
+      (t) => t.toLowerCase() === value.toLowerCase(),
+    );
+    if (!match) throw new BadRequestException('Select a valid service type');
+    return match;
+  }
 
   private async nextPoNumber(): Promise<string> {
     const year = new Date().getFullYear();
@@ -130,7 +175,7 @@ export class PurchaseOrdersService {
     return po;
   }
 
-  private toResponse(po: PurchaseOrderDocument, customer: CustomerDocument) {
+  private toResponse(po: PurchaseOrderDocument) {
     return {
       id: po._id.toString(),
       poNumber: po.poNumber,
@@ -139,11 +184,12 @@ export class PurchaseOrdersService {
       serviceType: po.serviceType,
       poInstructions: po.poInstructions,
       customer: {
-        id: customer._id.toString(),
-        name: customer.name,
-        address: customer.address,
-        phone: customer.phone,
-        email: customer.email,
+        id: po.customerId.toString(),
+        name: po.customerDetails.name,
+        address: po.customerDetails.address,
+        location: po.customerDetails.location ?? '',
+        phone: po.customerDetails.phone,
+        email: po.customerDetails.email,
       },
       documents: (po.documents as StoredFileDoc[]).map((d) => ({
         id: d._id.toString(),
@@ -163,11 +209,13 @@ export class PurchaseOrdersService {
     rawFiles: Express.Multer.File[],
     actor: Actor,
   ) {
+    const serviceType = await this.resolveServiceType(dto.serviceType);
     const prepared = this.files.prepare(rawFiles);
     const customer = await this.customers.create(
       {
         name: dto.customerName,
         address: dto.address,
+        location: dto.location,
         phone: dto.phone,
         email: dto.email,
       },
@@ -182,7 +230,14 @@ export class PurchaseOrdersService {
       po = await this.poModel.create({
         poNumber,
         customerId: customer._id,
-        serviceType: dto.serviceType,
+        customerDetails: {
+          name: customer.name,
+          address: customer.address,
+          location: customer.location ?? '',
+          phone: customer.phone,
+          email: customer.email,
+        },
+        serviceType,
         poInstructions: dto.poInstructions ?? '',
         documents: stored,
         status: PoStatus.Registration,
@@ -200,7 +255,7 @@ export class PurchaseOrdersService {
       serviceType: po.serviceType,
       documents: po.documents.length,
     });
-    return this.toResponse(po, customer);
+    return this.toResponse(po);
   }
 
   async list(query: ListPurchaseOrdersDto) {
@@ -211,8 +266,7 @@ export class PurchaseOrdersService {
     if (query.status) filter.status = query.status;
     if (query.search) {
       const rx = new RegExp(escapeRegex(query.search), 'i');
-      const customerIds = await this.customers.findIdsByNameMatch(rx);
-      filter.$or = [{ poNumber: rx }, { customerId: { $in: customerIds } }];
+      filter.$or = [{ poNumber: rx }, { 'customerDetails.name': rx }];
     }
 
     const [items, total] = await Promise.all([
@@ -224,11 +278,6 @@ export class PurchaseOrdersService {
         .exec(),
       this.poModel.countDocuments(filter).exec(),
     ]);
-
-    const customers = await this.customers.findByIds(
-      items.map((po) => po.customerId),
-    );
-    const byId = new Map(customers.map((c) => [c._id.toString(), c]));
 
     // FR-06.03: the PO List shows a collection countdown for POs in the Operations stage -
     // batch-fetch scheduled dates only for those rows rather than joining on every page load.
@@ -251,7 +300,7 @@ export class PurchaseOrdersService {
       items: items.map((po) => ({
         id: po._id.toString(),
         poNumber: po.poNumber,
-        customerName: byId.get(po.customerId.toString())?.name ?? '—',
+        customerName: po.customerDetails.name,
         serviceType: po.serviceType,
         status: po.status,
         locked: po.status !== PoStatus.Registration,
@@ -291,11 +340,24 @@ export class PurchaseOrdersService {
     };
   }
 
-  async getById(id: string) {
+  async customerAccessStatus(id: string) {
     const po = await this.findOrThrow(id);
-    const customer = await this.customers.findById(po.customerId);
-    if (!customer) throw new NotFoundException('Customer record not found');
-    return this.toResponse(po, customer);
+    return this.customerAccess.status(po.customerId.toString());
+  }
+
+  /** (Re)sends the customer-app invite for this PO's customer. */
+  async inviteCustomer(id: string, actor: Actor) {
+    const po = await this.findOrThrow(id);
+    const result = await this.customerAccess.invite(po.customerId.toString());
+    await this.record(actor, 'customer.invited', po, {
+      status: result.status,
+      emailed: result.emailed,
+    });
+    return result;
+  }
+
+  async getById(id: string) {
+    return this.toResponse(await this.findOrThrow(id));
   }
 
   async update(
@@ -312,6 +374,8 @@ export class PurchaseOrdersService {
 
     const customer = await this.customers.findById(po.customerId);
     if (!customer) throw new NotFoundException('Customer record not found');
+    if (dto.serviceType !== undefined)
+      dto.serviceType = await this.resolveServiceType(dto.serviceType);
 
     const prepared = this.files.prepare(rawFiles);
     const existing = po.documents as StoredFileDoc[];
@@ -329,16 +393,25 @@ export class PurchaseOrdersService {
       if (to !== undefined && to !== from)
         changes[label] = { from: clip(from), to: clip(to) };
     };
-    track('customerName', customer.name, dto.customerName);
-    track('address', customer.address, dto.address);
-    track('phone', customer.phone, dto.phone);
-    track('email', customer.email, dto.email?.toLowerCase());
+    const shown = po.customerDetails;
+    track('customerName', shown.name, dto.customerName);
+    track('address', shown.address, dto.address);
+    track('location', shown.location ?? '', dto.location);
+    track('phone', shown.phone, dto.phone);
+    track('email', shown.email, dto.email?.toLowerCase());
     track('serviceType', po.serviceType, dto.serviceType);
     track('poInstructions', po.poInstructions, dto.poInstructions);
     if (dto.customerName !== undefined) customerChanges.name = dto.customerName;
     if (dto.address !== undefined) customerChanges.address = dto.address;
+    if (dto.location !== undefined) customerChanges.location = dto.location;
     if (dto.phone !== undefined) customerChanges.phone = dto.phone;
     if (dto.email !== undefined) customerChanges.email = dto.email;
+    const detailChanges = Object.fromEntries(
+      Object.entries(customerChanges).map(([k, v]) => [
+        `customerDetails.${k}`,
+        v,
+      ]),
+    );
 
     const stored = await this.files.save(po.poNumber, 'documents', prepared);
     const remaining = existing.filter((d) => !removeIds.has(d._id.toString()));
@@ -356,6 +429,7 @@ export class PurchaseOrdersService {
             ...(dto.poInstructions !== undefined
               ? { poInstructions: dto.poInstructions }
               : {}),
+            ...detailChanges,
             documents: [...remaining, ...stored],
           },
         },
@@ -377,11 +451,10 @@ export class PurchaseOrdersService {
       );
     }
 
-    const updatedCustomer =
-      Object.keys(customerChanges).length > 0
-        ? ((await this.customers.update(customer._id, customerChanges)) ??
-          customer)
-        : customer;
+    // Editing is only possible during Registration, so the customer record is still this
+    // PO's own and is kept in step with it.
+    if (Object.keys(customerChanges).length > 0)
+      await this.customers.update(customer._id, customerChanges);
 
     await Promise.all(
       toRemove.map((d) =>
@@ -394,7 +467,7 @@ export class PurchaseOrdersService {
       documentsAdded: stored.map((f) => f.originalName),
       documentsRemoved: toRemove.map((d) => d.originalName),
     });
-    return this.toResponse(updated, updatedCustomer);
+    return this.toResponse(updated);
   }
 
   async getDocumentFile(id: string, docId: string) {

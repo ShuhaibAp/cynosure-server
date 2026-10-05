@@ -25,4 +25,10 @@ export class UsersService {
   }) {
     return this.userModel.create(data);
   }
+
+  setPasswordHash(id: string, passwordHash: string) {
+    return this.userModel
+      .findByIdAndUpdate(id, { $set: { passwordHash } })
+      .exec();
+  }
 }

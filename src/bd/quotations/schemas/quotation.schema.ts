@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { ClientDecision } from '../../../common/enums/client-decision.enum.js';
-import { Uom } from '../../../common/enums/inspection.enum.js';
 import { QuotationStatus } from '../../../common/enums/quotation.enum.js';
 import {
   StoredFile,
@@ -19,8 +18,9 @@ export class QuotationLine {
   @Prop({ type: String, required: true, trim: true })
   materialName!: string;
 
-  @Prop({ type: String, required: true, enum: Uom })
-  uom!: Uom;
+  // A built-in Uom or a unit added through POST /uoms.
+  @Prop({ type: String, required: true })
+  uom!: string;
 
   @Prop({ type: Number, required: true, min: 0 })
   quantity!: number;

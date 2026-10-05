@@ -6,6 +6,7 @@ import { Customer, CustomerDocument } from './schemas/customer.schema.js';
 export interface CustomerFields {
   name: string;
   address: string;
+  location?: string;
   phone: string;
   email: string;
 }
@@ -31,14 +32,6 @@ export class CustomersService {
 
   findById(id: Types.ObjectId | string) {
     return this.model.findById(id).exec();
-  }
-
-  findByIds(ids: Array<Types.ObjectId | string>) {
-    return this.model.find({ _id: { $in: ids } }).exec();
-  }
-
-  findIdsByNameMatch(regex: RegExp) {
-    return this.model.find({ name: regex }).distinct('_id').exec();
   }
 
   delete(id: Types.ObjectId | string) {

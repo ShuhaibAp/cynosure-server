@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { InspectionType, Uom } from '../../../common/enums/inspection.enum.js';
+import { InspectionType } from '../../../common/enums/inspection.enum.js';
 export type InspectionDocument = HydratedDocument<Inspection>;
 
 /**
@@ -42,8 +42,9 @@ export class InspectionLine {
   @Prop({ type: String, required: true, trim: true })
   materialName!: string;
 
-  @Prop({ type: String, required: true, enum: Uom })
-  uom!: Uom;
+  // A built-in Uom or a unit added through POST /uoms.
+  @Prop({ type: String, required: true })
+  uom!: string;
 
   @Prop({ type: Number, required: true, min: 0 })
   clientQuantity!: number;
