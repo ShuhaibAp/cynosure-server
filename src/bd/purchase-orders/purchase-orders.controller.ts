@@ -57,6 +57,12 @@ export class PurchaseOrdersController {
     return this.service.summary();
   }
 
+  @Get('returning-customers')
+  @Roles(Role.BdTeam)
+  returningCustomers(@Query('q') q?: string) {
+    return this.service.returningCustomers(q);
+  }
+
   @Get('service-types')
   @Roles(Role.BdTeam, Role.Admin, Role.Operations)
   serviceTypes() {

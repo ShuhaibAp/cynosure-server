@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -55,4 +56,14 @@ export class CreatePurchaseOrderDto {
   })
   @IsString()
   poInstructions?: string;
+
+  // Set when BD picks a returning customer: their record is reused instead of a new one.
+  @IsOptional()
+  @IsMongoId({ message: 'Choose a valid customer' })
+  existingCustomerId?: string;
+
+  // Set when the PO is created from a customer-app order request.
+  @IsOptional()
+  @IsMongoId()
+  orderRequestId?: string;
 }

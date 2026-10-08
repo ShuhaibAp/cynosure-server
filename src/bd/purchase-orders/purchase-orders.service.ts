@@ -13,6 +13,8 @@ import {
 } from '../../common/enums/po-status.enum.js';
 import { ServiceType } from '../../common/enums/service-type.enum.js';
 import { CustomerAccessService } from '../../common/customers/customer-access.service.js';
+import { CustomerDocument } from '../../common/customers/schemas/customer.schema.js';
+import { OrderRequestsService } from '../../common/order-requests/order-requests.service.js';
 import { CustomersService } from '../../common/customers/customers.service.js';
 import { PoFilesService } from '../../common/files/po-files.service.js';
 import { StoredFileDoc } from '../../common/files/stored-file.schema.js';
@@ -50,6 +52,7 @@ export class PurchaseOrdersService {
     private pickupModel: Model<PickupRequestDocument>,
     private customers: CustomersService,
     private customerAccess: CustomerAccessService,
+    private orderRequests: OrderRequestsService,
     private files: PoFilesService,
     private audit: AuditService,
   ) {}
@@ -211,16 +214,34 @@ export class PurchaseOrdersService {
   ) {
     const serviceType = await this.resolveServiceType(dto.serviceType);
     const prepared = this.files.prepare(rawFiles);
-    const customer = await this.customers.create(
-      {
-        name: dto.customerName,
+    // A returning customer keeps their record (name and email are theirs and stay as they
+    // are); the address, location and phone typed on this PO become their latest details.
+    let customer: CustomerDocument;
+    let createdCustomer = false;
+    if (dto.existingCustomerId) {
+      const existing = await this.customers.findById(dto.existingCustomerId);
+      if (!existing?.activatedAt)
+        throw new BadRequestException(
+          'Choose a customer who already has a customer-app login.',
+        );
+      customer = (await this.customers.update(existing._id, {
         address: dto.address,
-        location: dto.location,
+        location: dto.location ?? '',
         phone: dto.phone,
-        email: dto.email,
-      },
-      actor.userId,
-    );
+      }))!;
+    } else {
+      customer = await this.customers.create(
+        {
+          name: dto.customerName,
+          address: dto.address,
+          location: dto.location,
+          phone: dto.phone,
+          email: dto.email,
+        },
+        actor.userId,
+      );
+      createdCustomer = true;
+    }
 
     let poNumber: string | undefined;
     let po: PurchaseOrderDocument;
@@ -245,7 +266,7 @@ export class PurchaseOrdersService {
         createdByName: actor.name,
       });
     } catch (err) {
-      await this.customers.delete(customer._id);
+      if (createdCustomer) await this.customers.delete(customer._id);
       if (poNumber) await this.files.removeAll(poNumber);
       throw err;
     }
@@ -255,7 +276,16 @@ export class PurchaseOrdersService {
       serviceType: po.serviceType,
       documents: po.documents.length,
     });
+    if (dto.orderRequestId) {
+      await this.orderRequests
+        .markHandled(dto.orderRequestId, actor.name, po._id)
+        .catch(() => null);
+    }
     return this.toResponse(po);
+  }
+
+  returningCustomers(q?: string) {
+    return this.customers.listReturning(q);
   }
 
   async list(query: ListPurchaseOrdersDto) {
@@ -374,6 +404,15 @@ export class PurchaseOrdersService {
 
     const customer = await this.customers.findById(po.customerId);
     if (!customer) throw new NotFoundException('Customer record not found');
+    if (
+      customer.activatedAt &&
+      ((dto.customerName !== undefined && dto.customerName !== customer.name) ||
+        (dto.email !== undefined && dto.email.toLowerCase() !== customer.email))
+    ) {
+      throw new BadRequestException(
+        "This customer has a customer-app login, so their name and email can't be changed here.",
+      );
+    }
     if (dto.serviceType !== undefined)
       dto.serviceType = await this.resolveServiceType(dto.serviceType);
 
@@ -451,8 +490,8 @@ export class PurchaseOrdersService {
       );
     }
 
-    // Editing is only possible during Registration, so the customer record is still this
-    // PO's own and is kept in step with it.
+    // The customer record holds their latest details, so a change made here carries over to
+    // their next order; earlier POs keep the copy they stored.
     if (Object.keys(customerChanges).length > 0)
       await this.customers.update(customer._id, customerChanges);
 
