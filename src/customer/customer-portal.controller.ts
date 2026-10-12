@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Res,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../common/auth/current-user.decorator.js';
 import type { AuthUser } from '../common/auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../common/auth/jwt-auth.guard.js';
@@ -28,6 +38,27 @@ export class CustomerPortalController {
   @Get('orders/:id')
   order(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.service.order(user.email, id);
+  }
+
+  @Get('orders/:id/documents/:kind')
+  async document(
+    @Param('id') id: string,
+    @Param('kind') kind: string,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { buffer, name } = await this.service.document(
+      user.email,
+      id,
+      kind,
+      user,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${name}"`,
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return new StreamableFile(buffer);
   }
 
   @Get('order-requests')

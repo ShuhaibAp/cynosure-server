@@ -11,6 +11,8 @@ import {
   CustomerSchema,
 } from '../common/customers/schemas/customer.schema.js';
 import { OrderRequestsModule } from '../common/order-requests/order-requests.module.js';
+import { AorModule } from '../aor/aor.module.js';
+import { ReportsModule } from '../reports/reports.module.js';
 import { CustomerAuthController } from './customer-auth.controller.js';
 import { CustomerPortalController } from './customer-portal.controller.js';
 import { CustomerPortalService } from './customer-portal.service.js';
@@ -24,6 +26,8 @@ import { CustomerPortalService } from './customer-portal.service.js';
     AuthModule,
     CustomersModule,
     OrderRequestsModule,
+    AorModule,
+    ReportsModule,
   ],
   controllers: [CustomerAuthController, CustomerPortalController],
   providers: [CustomerPortalService],

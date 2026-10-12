@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AorService } from '../aor/aor.service.js';
+import { ReportsService } from '../reports/reports.service.js';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import {
@@ -20,6 +22,8 @@ export class CustomerPortalService {
     private poModel: Model<PurchaseOrderDocument>,
     @InjectModel(Customer.name) private customerModel: Model<CustomerDocument>,
     private requests: OrderRequestsService,
+    private aor: AorService,
+    private reports: ReportsService,
   ) {}
 
   // Each earlier PO has its own customer record, so "my orders" means every record sharing
@@ -62,14 +66,49 @@ export class CustomerPortalService {
     };
   }
 
-  async order(email: string, id: string) {
+  private async ownedPo(email: string, id: string) {
     if (!isValidObjectId(id)) throw new NotFoundException('Order not found');
     const ids = (await this.records(email)).map((c) => c._id);
     const po = await this.poModel
       .findOne({ _id: id, customerId: { $in: ids } })
       .exec();
     if (!po) throw new NotFoundException('Order not found');
+    return po;
+  }
+
+  /** Documents a customer may see: the AOR once it has been sent to them, the reports once generated. */
+  private async documentsFor(po: PurchaseOrderDocument) {
+    const id = po._id.toString();
+    const [aor, reports] = await Promise.all([
+      this.aor.get(id, 'Customer'),
+      this.reports.state(id, 'Customer'),
+    ]);
+    const out: Array<{ kind: string; title: string }> = [];
+    if (aor.aor?.sentAt)
+      out.push({ kind: 'aor', title: 'Acknowledgement of Receipt (AOR)' });
+    if (reports.generated) out.push(...reports.documents);
+    return out;
+  }
+
+  async document(
+    email: string,
+    id: string,
+    kind: string,
+    actor: { userId: string; name: string; role: string },
+  ) {
+    const po = await this.ownedPo(email, id);
+    const allowed = (await this.documentsFor(po)).map((d) => d.kind);
+    if (!allowed.includes(kind))
+      throw new NotFoundException('Document not found');
+    return kind === 'aor'
+      ? this.aor.pdf(id, actor)
+      : this.reports.pdf(id, kind, actor);
+  }
+
+  async order(email: string, id: string) {
+    const po = await this.ownedPo(email, id);
     return {
+      documents: await this.documentsFor(po),
       id: po._id.toString(),
       poNumber: po.poNumber,
       serviceType: po.serviceType,

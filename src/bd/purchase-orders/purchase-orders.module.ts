@@ -6,6 +6,10 @@ import { CustomersModule } from '../../common/customers/customers.module.js';
 import { OrderRequestsModule } from '../../common/order-requests/order-requests.module.js';
 import { FilesModule } from '../../common/files/files.module.js';
 import {
+  AorRecord,
+  AorRecordSchema,
+} from '../../aor/schemas/aor-record.schema.js';
+import {
   PickupRequest,
   PickupRequestSchema,
 } from '../pickup-requests/schemas/pickup-request.schema.js';
@@ -31,6 +35,8 @@ import {
       // (FR-06.03) - importing PickupRequestsModule would be circular, since it already
       // imports PurchaseOrdersModule.
       { name: PickupRequest.name, schema: PickupRequestSchema },
+      // Read-only: the AOR due date shown on the PO List (FR-09.05).
+      { name: AorRecord.name, schema: AorRecordSchema },
     ]),
     AuthModule,
     CustomersModule,

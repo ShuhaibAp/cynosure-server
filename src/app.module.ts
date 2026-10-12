@@ -7,6 +7,9 @@ import { InspectionsModule } from './bd/inspections/inspections.module.js';
 import { QuotationsModule } from './bd/quotations/quotations.module.js';
 import { PickupRequestsModule } from './bd/pickup-requests/pickup-requests.module.js';
 import { BdOrderRequestsModule } from './bd/order-requests/order-requests.module.js';
+import { AorModule } from './aor/aor.module.js';
+import { ReportsModule } from './reports/reports.module.js';
+import { WeighmentModule } from './weighment/weighment.module.js';
 import { FactoryModule } from './factory/factory.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { CustomerModule } from './customer/customer.module.js';
@@ -34,6 +37,9 @@ import { PurchaseOrdersModule } from './bd/purchase-orders/purchase-orders.modul
     BdOrderRequestsModule,
     AdminModule,
     FactoryModule,
+    WeighmentModule,
+    AorModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

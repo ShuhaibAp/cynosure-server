@@ -84,6 +84,15 @@ export class FactoryRecord {
   @Prop({ type: Number, min: 0, default: null })
   weighmentLoadedKg!: number | null;
 
+  // What the processing produced: usable recycled output and the non-recyclable residue, both
+  // weighed at the Factory. Optional for now (the SRS doesn't name them as fields); the Mass Flow
+  // Report accounts for the inbound weight with them.
+  @Prop({ type: Number, min: 0, default: null })
+  outputWeightKg!: number | null;
+
+  @Prop({ type: Number, min: 0, default: null })
+  residueWeightKg!: number | null;
+
   // BR-07.01: both scans are mandatory before the Factory step can be marked complete.
   @Prop({ type: StoredFileSchema, default: null })
   weighmentSlipEmpty!: StoredFile | null;

@@ -8,6 +8,8 @@ import {
   OperationsRecord,
   OperationsRecordSchema,
 } from '../operations/schemas/operations-record.schema.js';
+import { AorModule } from '../aor/aor.module.js';
+import { WeighmentModule } from '../weighment/weighment.module.js';
 import { FactoryController } from './factory.controller.js';
 import { FactoryService } from './factory.service.js';
 import {
@@ -26,6 +28,8 @@ import {
     AuditModule,
     FilesModule,
     PurchaseOrdersModule,
+    WeighmentModule,
+    AorModule,
   ],
   controllers: [FactoryController],
   providers: [FactoryService],

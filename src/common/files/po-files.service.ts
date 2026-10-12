@@ -13,7 +13,12 @@ export const MAX_FILES_PER_REQUEST = 10;
 
 /** Where a file lives under a PO: `uploads/purchase-orders/<poNumber>/<folder>/`. */
 export type FileFolder =
-  'documents' | 'inspection' | 'quotation' | 'operations' | 'factory';
+  | 'documents'
+  | 'inspection'
+  | 'quotation'
+  | 'operations'
+  | 'factory'
+  | 'reports';
 
 /** attachment = PDF, JPG or PNG; photo = JPG or PNG only. */
 export type FileKind = 'attachment' | 'photo';

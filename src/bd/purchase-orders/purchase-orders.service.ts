@@ -22,6 +22,10 @@ import {
   PickupRequest,
   PickupRequestDocument,
 } from '../pickup-requests/schemas/pickup-request.schema.js';
+import {
+  AorRecord,
+  AorRecordDocument,
+} from '../../aor/schemas/aor-record.schema.js';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
 import { ListPurchaseOrdersDto } from './dto/list-purchase-orders.dto.js';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
@@ -50,6 +54,7 @@ export class PurchaseOrdersService {
     private serviceTypeModel: Model<ServiceTypeDocument>,
     @InjectModel(PickupRequest.name)
     private pickupModel: Model<PickupRequestDocument>,
+    @InjectModel(AorRecord.name) private aorModel: Model<AorRecordDocument>,
     private customers: CustomersService,
     private customerAccess: CustomerAccessService,
     private orderRequests: OrderRequestsService,
@@ -323,6 +328,19 @@ export class PurchaseOrdersService {
       pickups.map((p) => [p.poId.toString(), p.collectionDateTime]),
     );
 
+    // FR-09.05: the PO List shows the AOR due date (red when overdue) until it has been sent.
+    const aorIds = items
+      .filter(
+        (po) => po.status === PoStatus.Weighment || po.status === PoStatus.Aor,
+      )
+      .map((po) => po._id);
+    const aors = aorIds.length
+      ? await this.aorModel
+          .find({ poId: { $in: aorIds }, sentAt: null }, { poId: 1, dueAt: 1 })
+          .exec()
+      : [];
+    const aorDueById = new Map(aors.map((a) => [a.poId.toString(), a.dueAt]));
+
     return {
       total,
       page,
@@ -341,6 +359,7 @@ export class PurchaseOrdersService {
           po.status === PoStatus.Operations
             ? (scheduledById.get(po._id.toString()) ?? null)
             : null,
+        aorDueAt: aorDueById.get(po._id.toString()) ?? null,
       })),
     };
   }

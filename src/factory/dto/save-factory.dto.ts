@@ -67,6 +67,24 @@ export class SaveFactoryDto {
   weighmentLoadedKg?: number;
 
   @IsOptional()
+  @Max(MAX_QUANTITY, { message: 'Output Weight is too large' })
+  @Min(0, { message: 'Output Weight cannot be negative' })
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Enter a weight in kg (up to 2 decimal places)' },
+  )
+  outputWeightKg?: number;
+
+  @IsOptional()
+  @Max(MAX_QUANTITY, { message: 'Residue Weight is too large' })
+  @Min(0, { message: 'Residue Weight cannot be negative' })
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Enter a weight in kg (up to 2 decimal places)' },
+  )
+  residueWeightKg?: number;
+
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => FactoryLineInputDto)
   @IsArray()

@@ -21,6 +21,8 @@ import {
   OperationsRecord,
   OperationsRecordDocument,
 } from '../operations/schemas/operations-record.schema.js';
+import { AorService } from '../aor/aor.service.js';
+import { WeighmentService } from '../weighment/weighment.service.js';
 import { SaveFactoryDto, SaveTeardownLogDto } from './dto/save-factory.dto.js';
 import {
   FactoryLineDoc,
@@ -69,6 +71,8 @@ export class FactoryService {
     private pos: PurchaseOrdersService,
     private files: PoFilesService,
     private audit: AuditService,
+    private weighment: WeighmentService,
+    private aor: AorService,
   ) {}
 
   private async load(poId: string) {
@@ -164,6 +168,8 @@ export class FactoryService {
         weighmentEmptyKg: r.weighmentEmptyKg,
         weighmentLoadedKg: r.weighmentLoadedKg,
         netWeightKg: netKg(r.weighmentEmptyKg, r.weighmentLoadedKg),
+        outputWeightKg: r.outputWeightKg,
+        residueWeightKg: r.residueWeightKg,
         operationsWeights: await this.operationsSummary(po),
         weighmentSlipEmpty: fileView(r.weighmentSlipEmpty),
         weighmentSlipLoad: fileView(r.weighmentSlipLoad),
@@ -259,6 +265,10 @@ export class FactoryService {
       set.weighmentEmptyKg = dto.weighmentEmptyKg;
     if (dto.weighmentLoadedKg !== undefined)
       set.weighmentLoadedKg = dto.weighmentLoadedKg;
+    if (dto.outputWeightKg !== undefined)
+      set.outputWeightKg = dto.outputWeightKg;
+    if (dto.residueWeightKg !== undefined)
+      set.residueWeightKg = dto.residueWeightKg;
 
     if (dto.lines) {
       const byId = new Map(dto.lines.map((l) => [l.id, l]));
@@ -516,6 +526,11 @@ export class FactoryService {
     }
 
     await this.record(actor, 'factory.completed', moved);
+
+    // Both Operations and Factory are now complete: the AOR (with its T+2 clock) is created and
+    // the automatic weighment cross-check runs (Modules 9 and 8).
+    await this.aor.createFor(moved, actor);
+    await this.weighment.run(moved, actor);
     return this.toResponse(moved, updated, actor.role);
   }
 }
