@@ -509,12 +509,15 @@ export class PurchaseOrdersService {
     return this.toResponse(updated);
   }
 
-  async getDocumentFile(id: string, docId: string) {
+  async getDocumentFile(id: string, docId: string, actor: Actor) {
     const po = await this.findOrThrow(id);
     const doc = (po.documents as StoredFileDoc[]).find(
       (d) => d._id.toString() === docId,
     );
     if (!doc) throw new NotFoundException('Document not found');
+    await this.record(actor, 'po.document_downloaded', po, {
+      document: doc.originalName,
+    });
     return {
       path: this.files.pathFor(po.poNumber, 'documents', doc.storedName),
       name: doc.originalName,

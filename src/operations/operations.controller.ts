@@ -38,7 +38,7 @@ export class OperationsController {
   constructor(private service: OperationsService) {}
 
   @Get()
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   get(@Param('id') id: string) {
     return this.service.get(id);
   }
@@ -91,7 +91,7 @@ export class OperationsController {
   }
 
   @Get('photos/:photoId')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   async photo(
     @Param('id') id: string,
     @Param('photoId') photoId: string,
@@ -122,7 +122,7 @@ export class OperationsController {
   }
 
   @Get('form6-document')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   async form6Document(
     @Param('id') id: string,
     @Res({ passthrough: true }) res: Response,

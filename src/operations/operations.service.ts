@@ -540,7 +540,7 @@ export class OperationsService {
     };
   }
 
-  /** Locks the record and moves the PO on to Weighment (Module 8). */
+  /** Locks the record and moves the PO on to the Factory stage (Module 7). */
   async complete(poId: string, actor: Actor) {
     const { po, record: found } = await this.load(poId);
     const r = this.requireEditable(po, found);
@@ -570,7 +570,7 @@ export class OperationsService {
     const moved = await this.pos.transitionStatus(
       po._id,
       PoStatus.Operations,
-      PoStatus.Weighment,
+      PoStatus.Factory,
     );
     if (!moved) {
       await this.model.updateOne(

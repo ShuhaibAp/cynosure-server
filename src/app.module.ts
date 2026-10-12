@@ -7,6 +7,8 @@ import { InspectionsModule } from './bd/inspections/inspections.module.js';
 import { QuotationsModule } from './bd/quotations/quotations.module.js';
 import { PickupRequestsModule } from './bd/pickup-requests/pickup-requests.module.js';
 import { BdOrderRequestsModule } from './bd/order-requests/order-requests.module.js';
+import { FactoryModule } from './factory/factory.module.js';
+import { AdminModule } from './admin/admin.module.js';
 import { CustomerModule } from './customer/customer.module.js';
 import { OperationsModule } from './operations/operations.module.js';
 import { PurchaseOrdersModule } from './bd/purchase-orders/purchase-orders.module.js';
@@ -30,6 +32,8 @@ import { PurchaseOrdersModule } from './bd/purchase-orders/purchase-orders.modul
     OperationsModule,
     CustomerModule,
     BdOrderRequestsModule,
+    AdminModule,
+    FactoryModule,
   ],
 })
 export class AppModule {}

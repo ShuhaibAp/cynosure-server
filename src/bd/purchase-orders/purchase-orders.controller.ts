@@ -45,14 +45,14 @@ export class PurchaseOrdersController {
   }
 
   @Get()
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   list(@Query() query: ListPurchaseOrdersDto) {
     return this.service.list(query);
   }
 
   // Declared before ':id' so "summary" is not read as an id.
   @Get('summary')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   summary() {
     return this.service.summary();
   }
@@ -64,7 +64,7 @@ export class PurchaseOrdersController {
   }
 
   @Get('service-types')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   serviceTypes() {
     return this.service.listServiceTypes();
   }
@@ -91,7 +91,7 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   getOne(@Param('id') id: string) {
     return this.service.getById(id);
   }
@@ -109,12 +109,16 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id/documents/:docId')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   async download(
     @Param('id') id: string,
     @Param('docId') docId: string,
     @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: AuthUser,
   ) {
-    return streamStoredFile(res, await this.service.getDocumentFile(id, docId));
+    return streamStoredFile(
+      res,
+      await this.service.getDocumentFile(id, docId, user),
+    );
   }
 }

@@ -27,7 +27,7 @@ export class PickupRequestsController {
   constructor(private service: PickupRequestsService) {}
 
   @Get()
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   get(@Param('id') id: string) {
     return this.service.get(id);
   }
@@ -56,7 +56,7 @@ export class PickupRequestsController {
   }
 
   @Get('report')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   async report(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,

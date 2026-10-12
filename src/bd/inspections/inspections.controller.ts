@@ -41,7 +41,7 @@ export class InspectionsController {
   constructor(private service: InspectionsService) {}
 
   @Get()
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   get(@Param('id') id: string) {
     return this.service.get(id);
   }
@@ -119,7 +119,7 @@ export class InspectionsController {
   }
 
   @Get('photos/:photoId')
-  @Roles(Role.BdTeam, Role.Admin, Role.Operations)
+  @Roles(Role.BdTeam, Role.Admin, Role.Operations, Role.Factory)
   async photo(
     @Param('id') id: string,
     @Param('photoId') photoId: string,

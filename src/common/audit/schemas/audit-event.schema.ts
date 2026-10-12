@@ -28,6 +28,9 @@ export class AuditEvent {
 
   @Prop({ type: Object })
   details?: Record<string, unknown>;
+
+  createdAt!: Date;
 }
 
 export const AuditEventSchema = SchemaFactory.createForClass(AuditEvent);
+AuditEventSchema.index({ createdAt: -1 });
