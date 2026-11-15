@@ -124,14 +124,14 @@ export class CustomerAccessService {
     const link = `${this.appUrl()}/set-password?token=${token}`;
     const first = kind === 'invite';
     const intro = first
-      ? 'Your quotation has been approved. Create a password to follow your order in the Cynosure customer app.'
-      : 'We received a request to reset your Cynosure password.';
+      ? 'Your quotation has been approved. Create a password to follow your order in the customer portal.'
+      : 'We received a request to reset your password.';
     const expiry = `This link is valid for ${INVITE_DAYS} days. If you did not expect this email you can ignore it.`;
     const sent = await this.mail.send({
       to: customer.email,
       subject: first
-        ? 'Set your password to access your Cynosure account'
-        : 'Reset your Cynosure password',
+        ? 'Set your password to access your account'
+        : 'Reset your password',
       text: `Hello ${customer.name},\n\n${intro}\n\n${link}\n\n${expiry}`,
       html: `<p>Hello ${escapeHtml(customer.name)},</p><p>${intro}</p><p><a href="${link}">${first ? 'Set your password' : 'Reset your password'}</a></p><p>${expiry}</p>`,
     });

@@ -16,7 +16,7 @@ export interface AorData {
 export function drawAor(pdf: ReportPdf, d: AorData) {
   pdf.begin('Acknowledgement of Receipt', d.poNumber, d.generatedAt);
   pdf.paragraph(
-    'Cynosure Recycling Private Limited acknowledges receipt of the e-waste material listed below, collected from the client for processing.',
+    'Reviens Tech acknowledges receipt of the e-waste material listed below, collected from the client for processing.',
   );
 
   pdf.heading('Client');

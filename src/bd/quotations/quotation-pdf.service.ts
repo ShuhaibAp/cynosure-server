@@ -62,10 +62,10 @@ export class QuotationPdfService {
 
   async build(data: QuotationPdfData): Promise<Buffer> {
     const logo = await readFile(
-      resolve(process.cwd(), 'assets', 'cynosure-logo.png'),
+      resolve(process.cwd(), 'assets', 'brand-logo.png'),
     ).catch(() => {
       this.logger.warn(
-        'assets/cynosure-logo.png is missing; printing the company name instead',
+        'assets/brand-logo.png is missing; printing the company name instead',
       );
       return null;
     });
@@ -76,7 +76,7 @@ export class QuotationPdfService {
       bufferPages: true,
       info: {
         Title: `Quotation ${data.poNumber} v${data.version}`,
-        Author: 'Cynosure Recycling Private Limited',
+        Author: 'Reviens Tech',
       },
     });
     const chunks: Buffer[] = [];
@@ -96,7 +96,7 @@ export class QuotationPdfService {
         .font('Helvetica-Bold')
         .fontSize(14)
         .fillColor(BRAND)
-        .text('CYNOSURE RECYCLING', MARGIN, MARGIN);
+        .text('REVIENS TECH', MARGIN, MARGIN);
     doc
       .font('Helvetica-Bold')
       .fontSize(20)
@@ -286,7 +286,7 @@ export class QuotationPdfService {
       .font('Helvetica')
       .fontSize(9)
       .fillColor(MUTED)
-      .text('For Cynosure Recycling Private Limited', MARGIN, y);
+      .text('For Reviens Tech', MARGIN, y);
     if (data.signature) {
       try {
         doc.image(data.signature, MARGIN, y + 16, { fit: [180, 56] });
@@ -317,7 +317,7 @@ export class QuotationPdfService {
         .fontSize(8)
         .fillColor(MUTED)
         .text(
-          `Cynosure Recycling Private Limited  |  Page ${i - start + 1} of ${count}`,
+          `Reviens Tech  |  Page ${i - start + 1} of ${count}`,
           MARGIN,
           doc.page.height - 30,
           { width: contentWidth, align: 'center' },
