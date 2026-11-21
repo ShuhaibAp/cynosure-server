@@ -1,6 +1,6 @@
 # cyn-server
 
-Backend API for **Lifecycle & Traceability ERP**, the B2B e-waste ERP and workflow system. It serves the staff portal (`service-app`) and, later, the customer portal (`customer-app`).
+Backend API for **Cynosure MIS**, the B2B e-waste ERP and workflow system. It serves the staff portal (`service-app`) and, later, the customer portal (`customer-app`).
 
 **Stack:** NestJS 12, TypeScript (ESM), MongoDB (Mongoose), JWT auth (Passport).
 

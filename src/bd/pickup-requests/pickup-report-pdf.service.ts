@@ -58,10 +58,10 @@ export class PickupReportPdfService {
 
   async build(data: PickupReportPdfData): Promise<Buffer> {
     const logo = await readFile(
-      resolve(process.cwd(), 'assets', 'brand-logo.png'),
+      resolve(process.cwd(), 'assets', 'cynosure-logo.png'),
     ).catch(() => {
       this.logger.warn(
-        'assets/brand-logo.png is missing; printing the company name instead',
+        'assets/cynosure-logo.png is missing; printing the company name instead',
       );
       return null;
     });
@@ -72,7 +72,7 @@ export class PickupReportPdfService {
       bufferPages: true,
       info: {
         Title: `Inspection Report ${data.poNumber}`,
-        Author: 'Reviens Tech',
+        Author: 'Cynosure Recycling Private Limited',
       },
     });
     const chunks: Buffer[] = [];
@@ -97,7 +97,7 @@ export class PickupReportPdfService {
         .font('Helvetica-Bold')
         .fontSize(14)
         .fillColor(BRAND)
-        .text('REVIENS TECH', MARGIN, MARGIN);
+        .text('CYNOSURE RECYCLING', MARGIN, MARGIN);
     doc
       .font('Helvetica-Bold')
       .fontSize(18)
@@ -348,7 +348,7 @@ export class PickupReportPdfService {
         .fontSize(8)
         .fillColor(MUTED)
         .text(
-          `Reviens Tech  |  Page ${i - start + 1} of ${count}`,
+          `Cynosure Recycling Private Limited  |  Page ${i - start + 1} of ${count}`,
           MARGIN,
           doc.page.height - 30,
           { width: contentWidth, align: 'center' },

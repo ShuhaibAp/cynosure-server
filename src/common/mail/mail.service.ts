@@ -39,7 +39,7 @@ export class MailService {
         body: JSON.stringify({
           from:
             this.config.get<string>('MAIL_FROM') ??
-            'Lifecycle & Traceability ERP <onboarding@resend.dev>',
+            'Cynosure <onboarding@resend.dev>',
           to: [message.to],
           subject: message.subject,
           html: message.html,
