@@ -122,16 +122,101 @@ export class CustomerAccessService {
         },
       },
     );
-    const link = `${this.appUrl()}/set-password?token=${token}`;
+    const appUrl = this.appUrl();
+    const link = `${appUrl}/set-password?token=${token}`;
     const first = kind === 'invite';
     const brand = getBrand();
     const intro = first ? brand.inviteIntro : brand.resetIntro;
-    const expiry = `This link is valid for ${INVITE_DAYS} days. If you did not expect this email you can ignore it.`;
+    const expiry = `This link is valid for ${INVITE_DAYS} days. If you did not expect this email you can safely ignore it.`;
+    const ctaLabel = first ? 'Set Your Password' : 'Reset Your Password';
+    const heading = first
+      ? 'Welcome to your Customer Portal'
+      : 'Reset your password';
+    const bg = brand.theme === 'lterp' ? '#f4f7f6' : '#f6f5f3';
+    const border = brand.theme === 'lterp' ? '#e1e8e5' : '#e7e5e0';
+    const tint = brand.theme === 'lterp' ? '#e8f4ee' : '#fbede4';
+    const tintBorder = brand.theme === 'lterp' ? '#bfdfd0' : '#f3d2bc';
+    const textMain = brand.theme === 'lterp' ? '#14211c' : '#1f2020';
+    const textMuted = brand.theme === 'lterp' ? '#4d5f58' : '#5d5c58';
+    const logoUrl = `${appUrl}/${brand.logoFile}`;
+    const highlights = first
+      ? `<tr>
+          <td style="padding:0 32px 24px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${tint};border:1px solid ${tintBorder};border-radius:10px;">
+              <tr>
+                <td style="padding:16px 20px;font-size:13.5px;line-height:1.6;color:${textMain};">
+                  <div style="font-weight:700;margin-bottom:6px;color:${brand.brandHex};">What you can do in the portal</div>
+                  <div>&bull;&nbsp; Track your order live across every processing stage</div>
+                  <div>&bull;&nbsp; Download your AOR and final compliance PDF reports</div>
+                  <div>&bull;&nbsp; Notify our team whenever you have new material ready for pickup</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`
+      : '';
+    const html = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${textMain};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid ${border};border-radius:14px;overflow:hidden;">
+          <tr>
+            <td style="height:4px;background:${brand.brandHex};font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px 20px;border-bottom:1px solid ${border};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand.companyName)}" height="36" style="display:block;height:36px;width:auto;border:0;" />
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${tint};border:1px solid ${tintBorder};color:${brand.brandHex};font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;">Customer Portal</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px 20px;">
+              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:700;color:${textMain};">${heading}</h1>
+              <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${textMain};">Hello ${escapeHtml(customer.name)},</p>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:${textMuted};">${escapeHtml(intro)}</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
+                <tr>
+                  <td align="center" style="border-radius:8px;background:${brand.brandHex};">
+                    <a href="${escapeHtml(link)}" target="_blank" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">${ctaLabel}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ${highlights}
+          <tr>
+            <td style="padding:0 32px 24px;">
+              <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:${textMuted};">${escapeHtml(expiry)}</p>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:${textMuted};word-break:break-all;">If the button above does not work, copy and paste this link into your browser:<br /><a href="${escapeHtml(link)}" style="color:${brand.brandHex};text-decoration:underline;">${escapeHtml(link)}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px;background:${bg};border-top:1px solid ${border};font-size:12px;color:${textMuted};text-align:center;">
+              &copy; ${new Date().getFullYear()} ${escapeHtml(brand.companyName)} &middot; ${escapeHtml(brand.appName)}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
     const sent = await this.mail.send({
       to: customer.email,
       subject: first ? brand.inviteSubject : brand.resetSubject,
       text: `Hello ${customer.name},\n\n${intro}\n\n${link}\n\n${expiry}`,
-      html: `<p>Hello ${escapeHtml(customer.name)},</p><p>${intro}</p><p><a href="${link}">${first ? 'Set your password' : 'Reset your password'}</a></p><p>${expiry}</p>`,
+      html,
     });
     if (!sent.sent)
       this.log.warn(`Link for ${customer.email} not emailed: ${sent.reason}`);
