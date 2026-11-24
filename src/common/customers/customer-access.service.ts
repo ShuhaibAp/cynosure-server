@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { getBrand } from '../brand.js';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'node:crypto';
@@ -123,15 +124,12 @@ export class CustomerAccessService {
     );
     const link = `${this.appUrl()}/set-password?token=${token}`;
     const first = kind === 'invite';
-    const intro = first
-      ? 'Your quotation has been approved. Create a password to follow your order in the Cynosure customer app.'
-      : 'We received a request to reset your Cynosure password.';
+    const brand = getBrand();
+    const intro = first ? brand.inviteIntro : brand.resetIntro;
     const expiry = `This link is valid for ${INVITE_DAYS} days. If you did not expect this email you can ignore it.`;
     const sent = await this.mail.send({
       to: customer.email,
-      subject: first
-        ? 'Set your password to access your Cynosure account'
-        : 'Reset your Cynosure password',
+      subject: first ? brand.inviteSubject : brand.resetSubject,
       text: `Hello ${customer.name},\n\n${intro}\n\n${link}\n\n${expiry}`,
       html: `<p>Hello ${escapeHtml(customer.name)},</p><p>${intro}</p><p><a href="${link}">${first ? 'Set your password' : 'Reset your password'}</a></p><p>${expiry}</p>`,
     });

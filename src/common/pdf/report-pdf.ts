@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import PDFDocument from 'pdfkit';
+import { getBrand } from '../brand.js';
 
 const MARGIN = 48;
-const BRAND = '#B44B14';
 const INK = '#1F2020';
 const MUTED = '#62615D';
 const RULE = '#E2E0DC';
@@ -56,7 +56,7 @@ export class ReportPdf {
       size: 'A4',
       margin: MARGIN,
       bufferPages: true,
-      info: { Title: title, Author: 'Cynosure Recycling Private Limited' },
+      info: { Title: title, Author: getBrand().companyName },
     });
     this.doc.on('data', (c: Buffer) => this.chunks.push(c));
     this.done = new Promise<Buffer>((ok, fail) => {
@@ -67,7 +67,7 @@ export class ReportPdf {
 
   static async create(title: string) {
     const logo = await readFile(
-      resolve(process.cwd(), 'assets', 'cynosure-logo.png'),
+      resolve(process.cwd(), 'assets', getBrand().logoFile),
     ).catch(() => null);
     return new ReportPdf(logo, title);
   }
@@ -92,8 +92,8 @@ export class ReportPdf {
       doc
         .font('Helvetica-Bold')
         .fontSize(14)
-        .fillColor(BRAND)
-        .text('CYNOSURE RECYCLING', MARGIN, MARGIN);
+        .fillColor(getBrand().brandHex)
+        .text(getBrand().companyUpper, MARGIN, MARGIN);
     doc
       .font('Helvetica-Bold')
       .fontSize(18)
@@ -124,7 +124,7 @@ export class ReportPdf {
     this.doc
       .font('Helvetica-Bold')
       .fontSize(11)
-      .fillColor(BRAND)
+      .fillColor(getBrand().brandHex)
       .text(text.toUpperCase(), MARGIN, this.y, { width: this.width });
     this.y = this.doc.y + 6;
   }
@@ -268,7 +268,7 @@ export class ReportPdf {
         .fontSize(8)
         .fillColor(MUTED)
         .text(
-          `Cynosure Recycling Private Limited  ·  Page ${i + 1} of ${range.count}`,
+          `${getBrand().companyName}  ·  Page ${i + 1} of ${range.count}`,
           MARGIN,
           this.doc.page.height - MARGIN + 6,
           { width: this.width, align: 'center', lineBreak: false },

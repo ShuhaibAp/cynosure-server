@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import PDFDocument from 'pdfkit';
+import { getBrand } from '../../common/brand.js';
 
 export interface QuotationPdfData {
   poNumber: string;
@@ -25,7 +26,6 @@ export interface QuotationPdfData {
 }
 
 const MARGIN = 48;
-const BRAND = '#B44B14';
 const INK = '#1F2020';
 const MUTED = '#62615D';
 const RULE = '#E2E0DC';
@@ -61,11 +61,12 @@ export class QuotationPdfService {
   private readonly logger = new Logger(QuotationPdfService.name);
 
   async build(data: QuotationPdfData): Promise<Buffer> {
+    const brand = getBrand();
     const logo = await readFile(
-      resolve(process.cwd(), 'assets', 'cynosure-logo.png'),
+      resolve(process.cwd(), 'assets', brand.logoFile),
     ).catch(() => {
       this.logger.warn(
-        'assets/cynosure-logo.png is missing; printing the company name instead',
+        `assets/${brand.logoFile} is missing; printing the company name instead`,
       );
       return null;
     });
@@ -76,7 +77,7 @@ export class QuotationPdfService {
       bufferPages: true,
       info: {
         Title: `Quotation ${data.poNumber} v${data.version}`,
-        Author: 'Cynosure Recycling Private Limited',
+        Author: brand.companyName,
       },
     });
     const chunks: Buffer[] = [];
@@ -95,8 +96,8 @@ export class QuotationPdfService {
       doc
         .font('Helvetica-Bold')
         .fontSize(14)
-        .fillColor(BRAND)
-        .text('CYNOSURE RECYCLING', MARGIN, MARGIN);
+        .fillColor(brand.brandHex)
+        .text(brand.companyUpper, MARGIN, MARGIN);
     doc
       .font('Helvetica-Bold')
       .fontSize(20)
@@ -170,7 +171,7 @@ export class QuotationPdfService {
 
     // ---- items table ----
     const drawTableHeader = (top: number) => {
-      doc.rect(MARGIN, top, contentWidth, 22).fill(BRAND);
+      doc.rect(MARGIN, top, contentWidth, 22).fill(brand.brandHex);
       let x = MARGIN;
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
       for (const col of COLUMNS) {
@@ -286,7 +287,7 @@ export class QuotationPdfService {
       .font('Helvetica')
       .fontSize(9)
       .fillColor(MUTED)
-      .text('For Cynosure Recycling Private Limited', MARGIN, y);
+      .text(`For ${brand.companyName}`, MARGIN, y);
     if (data.signature) {
       try {
         doc.image(data.signature, MARGIN, y + 16, { fit: [180, 56] });
@@ -317,7 +318,7 @@ export class QuotationPdfService {
         .fontSize(8)
         .fillColor(MUTED)
         .text(
-          `Cynosure Recycling Private Limited  |  Page ${i - start + 1} of ${count}`,
+          `${brand.companyName}  |  Page ${i - start + 1} of ${count}`,
           MARGIN,
           doc.page.height - 30,
           { width: contentWidth, align: 'center' },

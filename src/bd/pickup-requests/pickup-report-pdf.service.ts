@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import PDFDocument from 'pdfkit';
+import { getBrand } from '../../common/brand.js';
 
 export interface PickupReportPdfData {
   poNumber: string;
@@ -18,7 +19,6 @@ export interface PickupReportPdfData {
 }
 
 const MARGIN = 48;
-const BRAND = '#B44B14';
 const INK = '#1F2020';
 const MUTED = '#62615D';
 const RULE = '#E2E0DC';
@@ -57,11 +57,12 @@ export class PickupReportPdfService {
   private readonly logger = new Logger(PickupReportPdfService.name);
 
   async build(data: PickupReportPdfData): Promise<Buffer> {
+    const brand = getBrand();
     const logo = await readFile(
-      resolve(process.cwd(), 'assets', 'cynosure-logo.png'),
+      resolve(process.cwd(), 'assets', brand.logoFile),
     ).catch(() => {
       this.logger.warn(
-        'assets/cynosure-logo.png is missing; printing the company name instead',
+        `assets/${brand.logoFile} is missing; printing the company name instead`,
       );
       return null;
     });
@@ -72,7 +73,7 @@ export class PickupReportPdfService {
       bufferPages: true,
       info: {
         Title: `Inspection Report ${data.poNumber}`,
-        Author: 'Cynosure Recycling Private Limited',
+        Author: brand.companyName,
       },
     });
     const chunks: Buffer[] = [];
@@ -96,8 +97,8 @@ export class PickupReportPdfService {
       doc
         .font('Helvetica-Bold')
         .fontSize(14)
-        .fillColor(BRAND)
-        .text('CYNOSURE RECYCLING', MARGIN, MARGIN);
+        .fillColor(brand.brandHex)
+        .text(brand.companyUpper, MARGIN, MARGIN);
     doc
       .font('Helvetica-Bold')
       .fontSize(18)
@@ -223,7 +224,7 @@ export class PickupReportPdfService {
 
     // ---- materials table ----
     const drawTableHeader = (top: number) => {
-      doc.rect(MARGIN, top, contentWidth, 22).fill(BRAND);
+      doc.rect(MARGIN, top, contentWidth, 22).fill(brand.brandHex);
       let x = MARGIN;
       doc.font('Helvetica-Bold').fontSize(8).fillColor('#FFFFFF');
       for (const col of COLUMNS) {
@@ -348,7 +349,7 @@ export class PickupReportPdfService {
         .fontSize(8)
         .fillColor(MUTED)
         .text(
-          `Cynosure Recycling Private Limited  |  Page ${i - start + 1} of ${count}`,
+          `${brand.companyName}  |  Page ${i - start + 1} of ${count}`,
           MARGIN,
           doc.page.height - 30,
           { width: contentWidth, align: 'center' },

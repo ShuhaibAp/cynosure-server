@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { getBrand } from '../brand.js';
 
 export interface MailMessage {
   to: string;
@@ -38,8 +39,7 @@ export class MailService {
         },
         body: JSON.stringify({
           from:
-            this.config.get<string>('MAIL_FROM') ??
-            'Cynosure <onboarding@resend.dev>',
+            this.config.get<string>('MAIL_FROM') ?? getBrand().mailFromDefault,
           to: [message.to],
           subject: message.subject,
           html: message.html,

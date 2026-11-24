@@ -1,3 +1,4 @@
+import { getBrand } from '../common/brand.js';
 import { fmtDay, fmtKg, fmtQty, ReportPdf } from '../common/pdf/report-pdf.js';
 
 export interface AorData {
@@ -16,7 +17,7 @@ export interface AorData {
 export function drawAor(pdf: ReportPdf, d: AorData) {
   pdf.begin('Acknowledgement of Receipt', d.poNumber, d.generatedAt);
   pdf.paragraph(
-    'Cynosure Recycling Private Limited acknowledges receipt of the e-waste material listed below, collected from the client for processing.',
+    `${getBrand().companyName} acknowledges receipt of the e-waste material listed below, collected from the client for processing.`,
   );
 
   pdf.heading('Client');
